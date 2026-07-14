@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+.env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test cache
+.pytest_cache/
+
+# Project-specific backups (user config is not tracked)
+protontune/backups/
+
+# ProtonDB data dump (ODbL-licensed, must be downloaded separately)
+# These are large JSON/CSV/tar.gz files that go in ~/.config/, not the repo
+data/*.csv
+data/*.json
+data/*.tar.gz
+data/.extracted.json
+
+# User config directory (kept locally)
+# ~/.config/steam-proton-optimizer/ is never in the repo
+
+# Logs
+*.log
