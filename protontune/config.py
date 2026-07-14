@@ -242,7 +242,8 @@ def write_launch_options(app_id: str, options_string: str, localconfig_path: Pat
     import vdf
 
     try:
-        content = vdf.load(localconfig_path)
+        with localconfig_path.open("r", encoding="utf-8") as f:
+            content = vdf.load(f)
     except Exception:
         return False
 
@@ -282,7 +283,8 @@ def write_proton_version(app_id: str, proton_name: str, config_path: Path) -> bo
     import vdf
 
     try:
-        content = vdf.load(config_path)
+        with config_path.open("r", encoding="utf-8") as f:
+            content = vdf.load(f)
     except Exception:
         return False
 
@@ -310,7 +312,8 @@ def read_launch_options(app_id: str, localconfig_path: Path) -> Optional[str]:
     import vdf
 
     try:
-        content = vdf.load(localconfig_path)
+        with localconfig_path.open("r", encoding="utf-8") as f:
+            content = vdf.load(f)
     except Exception:
         return None
 
@@ -334,7 +337,8 @@ def read_proton_version(app_id: str, config_path: Path) -> Optional[str]:
     import vdf
 
     try:
-        content = vdf.load(config_path)
+        with config_path.open("r", encoding="utf-8") as f:
+            content = vdf.load(f)
     except Exception:
         return None
 
