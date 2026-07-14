@@ -33,12 +33,75 @@ def find_steam_roots() -> list[Path]:
     return [root for root in _STEAM_ROOTS if root.exists()]
 
 
+# Known non-game AppIDs — Steam runtimes, Proton builds, tools, servers, etc.
+_NON_GAME_APPIDS: set[str] = {
+    # Steam Linux Runtimes
+    "1070560",  # Steam Linux Runtime 1.0 (scout)
+    "1391110",  # Steam Linux Runtime 2.0 (soldier)
+    "1628350",  # Steam Linux Runtime 3.0 (sniper)
+    "4183110",  # Steam Linux Runtime 4.0
+    # Proton builds
+    "1493710",  # Proton Experimental
+    "1826330",  # Proton EasyAntiCheat Runtime
+    "961740",   # Proton 3.7
+    "1054830",  # Proton 4.11
+    "1245620",  # Proton 5.0
+    "1420170",  # Proton 6.3
+    "1883940",  # Proton 7.0
+    "2180100",  # Proton 8.0
+    "2465220",  # Proton 9.0
+    # Redistributables
+    "228980",   # Steamworks Common Redistributables
+    # VR
+    "250820",   # SteamVR
+    # SDKs / tools
+    "107410",   # Source SDK Base 2013 Multiplayer
+    "243750",   # Source SDK Base 2013 Singleplayer
+    "346110",   # Source SDK 2007
+    "211820",   # Starbound Dedicated Server
+    "258550",   # Rust Dedicated Server
+    "298740",   # Space Engineers Dedicated Server
+    "4020",     # Win32 Dedicated Server
+    # Other tools
+    "223770",   # Portal 2 Authoring Tools
+    "246760",   # Counter-Strike: Global Offensive - SDK
+    "207690",   # Counter-Strike: Global Offensive Dedicated Server
+    "222730",   # Dota 2 Workshop Tools
+    # Steam streaming / link
+    "353370",   # Steam Link
+    "1466050",  # Steam Remote Play
+}
+
+# Name patterns that indicate a non-game entry (case-insensitive)
+_NON_GAME_NAME_PATTERNS = (
+    "steam linux runtime",
+    "steamworks",
+    "proton",
+    "redistributable",
+    "dedicated server",
+    "sdk",
+    "workshop tool",
+    "authoring tool",
+    "steamvr",
+    "steam link",
+    "steam streaming",
+    "remote play",
+)
+
+
+def is_actual_game_name(name: str) -> bool:
+    """Check whether a game name looks like an actual game, not a Steam tool."""
+    lower = name.lower()
+    return not any(pattern in lower for pattern in _NON_GAME_NAME_PATTERNS)
+
+
 def scan_installed_games() -> list[SteamGame]:
     """Scan all detected Steam installations for installed games.
 
+    Filters out known non-game entries (Steam runtimes, Proton builds,
+    redistributables, etc.) automatically.
+
     Returns a list of SteamGame objects, one per installed game found.
-    If a game appears in multiple Steam libraries, each occurrence is
-    returned separately (callers should deduplicate by app_id if needed).
     """
     games: list[SteamGame] = []
     seen_ids: set[str] = set()
@@ -55,6 +118,10 @@ def scan_installed_games() -> list[SteamGame]:
 
             name = _parse_acf_field(manifest, "name")
             if not name:
+                continue
+
+            # Filter out non-game entries
+            if app_id in _NON_GAME_APPIDS or not is_actual_game_name(name):
                 continue
 
             if app_id not in seen_ids:
