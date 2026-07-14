@@ -1,6 +1,6 @@
-# ProtonTune 🎮
+# ProtonTune
 
-**Optimize your Steam games on Linux with ProtonDB-powered recommendations.**
+**Automatically find the best launch options for all your steam games with ProtonDB-powered recommendations.**
 
 ProtonTune is an interactive, menu-driven CLI tool that analyzes your installed
 Steam library and hardware, cross-references ProtonDB community data, and helps
@@ -11,28 +11,28 @@ with automatic backups and explicit user confirmation before every change.
 
 ## Features
 
-- 🔍 **Hardware detection** — automatically identifies your GPU vendor and model
+- **Hardware detection** — automatically identifies your GPU vendor and model
   to tailor recommendations (NVIDIA, AMD, Intel).
-- 📚 **Steam library scanning** — detects installed games from all Steam
+- **Steam library scanning** — detects installed games from all Steam
   installation methods (native, Flatpak, Snap) without needing Steam to run.
-- 🧪 **Proton version inventory** — scans for official Valve Proton builds and
+- **Proton version inventory** — scans for official Valve Proton builds and
   custom builds (GE-Proton, Proton-GE, etc.).
-- 📊 **ProtonDB integration** — uses the official [ProtonDB data dump]
+- **ProtonDB integration** — uses the official [ProtonDB data dump]
   (https://github.com/bdefore/protondb-data) (ODbL-licensed) to score and
   recommend launch options per game. Downloaded and extracted automatically
   from GitHub — no API keys or live endpoints needed.
-- 🧠 **Frequency-based scoring** — only launch options used by ≥3% of
+- **Frequency-based scoring** — only launch options used by ≥3% of
   community reports are recommended. Noisy or hardware-specific options
   (GPU model names, driver paths, audio server choices, etc.) are
   automatically filtered out. `gamemoderun %command%` is always appended.
-- 🎯 **Per-game workflow** — scan your library once, then pick individual
+- **Per-game workflow** — scan your library once, then pick individual
   games to view recommendations or apply optimisations.
-- 💾 **Automatic backups** — every modification creates a timestamped backup of
+- **Automatic backups** — every modification creates a timestamped backup of
   your Steam configuration files, with configurable retention.
-- 🔄 **Restore** — roll back to any previous backup from the interactive menu.
-- 🚫 **Per-game exceptions** — exclude specific games or force custom launch
+- **Restore** — roll back to any previous backup from the interactive menu.
+- **Per-game exceptions** — exclude specific games or force custom launch
   options via a version-control-friendly YAML file.
-- ⚙️ **Settings** — configurable thresholds for confidence, report minimums,
+- **Settings** — configurable thresholds for confidence, report minimums,
   and backup retention.
 
 ## Installation
@@ -42,16 +42,16 @@ with automatic backups and explicit user confirmation before every change.
 - **Python 3.10+**
 - **pip** or **pipx**
 
-### Install via pip
+### Install from GitHub
 
 ```bash
-pip install protontune
+pip install git+https://github.com/hsh/Protontune.git
 ```
 
 ### Install via pipx (recommended for isolated installation)
 
 ```bash
-pipx install protontune
+pipx install git+https://github.com/hsh/Protontune.git
 ```
 
 ### Install from source
