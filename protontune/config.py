@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from protontune.settings import get_setting
 from protontune.utils import get_backup_dir, ensure_config_dir
 
 # How many backups to keep by default
@@ -207,8 +208,9 @@ def restore_backup(timestamp: str) -> bool:
     return restored > 0
 
 
-def _prune_old_backups(max_backups: int = _DEFAULT_MAX_BACKUPS) -> None:
+def _prune_old_backups() -> None:
     """Remove backups beyond the retention limit."""
+    max_backups = get_setting("max_backups", _DEFAULT_MAX_BACKUPS)
     backup_dir = get_backup_dir()
     if not backup_dir.exists():
         return
@@ -267,43 +269,81 @@ def write_launch_options(app_id: str, options_string: str, localconfig_path: Pat
     apps[app_id]["LaunchOptions"] = options_string
 
     try:
-        vdf.dump(content, localconfig_path.open("w"))
+        with localconfig_path.open("w", encoding="utf-8") as f:
+            vdf.dump(content, f)
         return True
     except Exception:
         return False
 
 
 def write_proton_version(app_id: str, proton_name: str, config_path: Path) -> bool:
-    """Force a Proton version for a specific game in config.vdf.
+    """Force a Proton version for a specific game in Steam's config.vdf.
 
-    Writes to the CompatToolMapping section.
+    Uses direct text manipulation to preserve Steam's exact tab formatting.
+    Rewriting the entire file with the vdf library removes tab indentation,
+    which causes Steam to ignore the Proton override settings.
 
     Returns True on success, False on failure.
     """
-    import vdf
+    import re
 
     try:
-        with config_path.open("r", encoding="utf-8") as f:
-            content = vdf.load(f)
-    except Exception:
+        text = config_path.read_text(encoding="utf-8")
+    except OSError:
         return False
 
-    try:
-        compat = content.get("InstallConfigStore", {}).get("Software", {}).get("Valve", {}).get("Steam", {}).get("CompatToolMapping", {})
-    except AttributeError:
+    if '"CompatToolMapping"' not in text:
         return False
 
-    # Each entry: "appid" { "name" "proton_version_name", "config" "", "priority" "250" }
-    compat[app_id] = {
-        "name": proton_name,
-        "config": "",
-        "priority": "250",
-    }
+    # Build the entry with real tab characters matching Steam's format
+    T = "\t"
+    entry_block = (
+        f'{T*5}"{app_id}"\n'
+        f'{T*5}{{\n'
+        f'{T*6}"name"{T*2}"{proton_name}"\n'
+        f'{T*6}"config"{T*2}""\n'
+        f'{T*6}"priority"{T*2}"250"\n'
+        f'{T*5}}}\n'
+    )
+
+    # Pattern to match an existing entry for this AppID
+    existing_pattern = re.compile(
+        rf'{re.escape(T*5)}+"{re.escape(app_id)}"\n'
+        rf'{re.escape(T*5)}+\{{\n'
+        rf'{re.escape(T*6)}+"name"{re.escape(T*2)}+"[^"]*"\n'
+        rf'{re.escape(T*6)}+"config"{re.escape(T*2)}+"[^"]*"\n'
+        rf'{re.escape(T*6)}+"priority"{re.escape(T*2)}+"[^"]*"\n'
+        rf'{re.escape(T*5)}+\}}\n?'
+    )
+
+    if existing_pattern.search(text):
+        # Replace existing entry
+        text = existing_pattern.sub(entry_block, text, count=1)
+    else:
+        # Insert before the closing brace of CompatToolMapping
+        # Find "CompatToolMapping" section and insert before its closing brace
+        marker = f'{T*4}"CompatToolMapping"'
+        section_start = text.index(marker)
+        # Find the closing brace at the same indent level as the section
+        search_from = section_start
+        # Skip past the opening brace
+        open_brace = text.index('{', search_from)
+        search_from = open_brace + 1
+        # Find the matching closing brace at indent level 4
+        closing_pattern = f'\n{T*4}}}'
+        try:
+            closing_pos = text.index(closing_pattern, search_from)
+        except ValueError:
+            # CompatToolMapping may be empty: "CompatToolMapping" { }
+            # In that case, insert just before the single closing brace
+            closing_pos = text.index('}', open_brace)
+        # Insert before closing brace, add newline for cleanliness
+        text = text[:closing_pos] + '\n' + entry_block.rstrip('\n') + text[closing_pos:]
 
     try:
-        vdf.dump(content, config_path.open("w"))
+        config_path.write_text(text, encoding="utf-8")
         return True
-    except Exception:
+    except OSError:
         return False
 
 

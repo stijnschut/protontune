@@ -101,14 +101,11 @@ class BackupManifest:
 # Conflict groups — mutually exclusive launch options
 CONFLICT_GROUPS: list[set[str]] = [
     # DXVK vs. wined3d — mutually exclusive render paths
-    {"PROTON_USE_WINED3D", "DXVK_ASYNC", "DXVK_HUD", "DXVK_CONFIG_FILE"},
-    # Proton vs. native
+    {"PROTON_USE_WINED3D", "DXVK_ASYNC"},
+    {"PROTON_USE_WINED3D", "DXVK_HUD"},
+    {"PROTON_USE_WINED3D", "DXVK_CONFIG_FILE"},
+    # Sync backends — mutually exclusive
     {"PROTON_NO_ESYNC", "PROTON_NO_FSYNC"},
-    # Various DXVK options in the same space
-    {"DXVK_ASYNC", "DXVK_STATE_CACHE"},
 ]
 
-# Proton versions known to be stable; used for fallback logic
-STABLE_PROTON_PREFIXES = [
-    "Proton 5.", "Proton 6.", "Proton 7.", "Proton 8.", "Proton 9.",
-]
+

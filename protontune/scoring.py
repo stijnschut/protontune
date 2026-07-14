@@ -130,14 +130,6 @@ _NOISE_PREFIXES: set[str] = {
     "PROTON_USE_WINED3D",
 }
 
-# Options that are inherently valuable for Proton gaming.
-# These are kept if they meet the minimum frequency, while cosmetic
-# options like MANGOHUD are excluded.
-_HIGH_VALUE_OPTIONS: set[str] = {
-    "PROTON_USE_NTSYNC",
-    "PROTON_NO_ESYNC",
-    "DXVK_ASYNC",
-}
 
 
 def score_recommendations(
@@ -206,7 +198,8 @@ def score_recommendations(
     # Filter out noise and cosmetic options
     scored = [o for o in scored if not _is_noise(o) and not _is_cosmetic(o)]
 
-    proton_version = _recommend_proton(reports, available_proton)
+    most_reported = _most_reported_proton(reports)
+    proton_version = _recommend_proton(available_proton, most_reported)
     combined = _combine_launch_options(scored)
 
     confidence = min(1.0, total / 50.0)
@@ -220,7 +213,8 @@ def score_recommendations(
         score_confidence=confidence,
         fallback_version=(
             proton_version is not None
-            and proton_version.name != _most_reported_proton(reports)
+            and most_reported is not None
+            and proton_version.name != most_reported
         ),
     )
 
@@ -287,10 +281,9 @@ def _combine_launch_options(options: list[ScoredOption]) -> str:
 
 
 def _recommend_proton(
-    reports: list[ProtonDBReport],
     available: list[ProtonVersion],
+    most_reported: Optional[str],
 ) -> Optional[ProtonVersion]:
-    most_reported = _most_reported_proton(reports)
     if most_reported:
         return find_closest_proton(available, most_reported)
     return None

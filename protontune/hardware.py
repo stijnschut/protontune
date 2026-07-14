@@ -36,7 +36,7 @@ def _detect_gpu_vendor() -> GPUVendor:
         return GPUVendor.NVIDIA
 
     nvidia_smi = run_cmd(["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"])
-    if nvidia_smi and "nvidia" in nvidia_smi.lower():
+    if nvidia_smi and not nvidia_smi.lower().startswith("nvidia-smi has failed") and "nvidia" in nvidia_smi.lower():
         return GPUVendor.NVIDIA
 
     # Check via lspci
@@ -72,7 +72,7 @@ def _detect_gpu_model(gpu_vendor: GPUVendor) -> Optional[str]:
     """Attempt to identify the exact GPU model."""
     if gpu_vendor == GPUVendor.NVIDIA:
         model = run_cmd(["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"])
-        if model and not model.lower().startswith("failed"):
+        if model and not model.lower().startswith("nvidia-smi has failed"):
             return model.strip()
 
     # Fall back to lspci

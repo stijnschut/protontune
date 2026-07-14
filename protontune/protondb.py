@@ -64,10 +64,6 @@ def find_dump_file() -> Optional[Path]:
                 matches = sorted(data_dir.glob(pattern))
                 if matches:
                     return matches[-1]
-            # Fall back to reports/ dir if it exists
-            if reports_dir.exists():
-                return reports_dir
-
         # 3. Flat CSV/JSON files (legacy)
         for pattern in ("reports_*.json", "protondb_data*.csv",
                         "protondb_data*.json", "protondb-reports*.csv",
@@ -91,17 +87,21 @@ def get_dump_info() -> Optional[dict]:
     if not path:
         return None
 
-    info = {
-        "path": str(path),
-        "size_mb": round(path.stat().st_size / (1024 * 1024), 2),
-        "modified": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
-    }
-
     if path.is_dir():
-        info["format"] = "directory (extracted reports)"
+        info = {
+            "path": str(path),
+            "modified": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
+            "format": "directory (extracted reports)",
+        }
         game_count = len(list(path.glob("*.json"))) if path.exists() else 0
         info["games"] = game_count
-    elif path.suffix == ".gz":
+    else:
+        info = {
+            "path": str(path),
+            "size_mb": round(path.stat().st_size / (1024 * 1024), 2),
+            "modified": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
+        }
+    if path.suffix == ".gz":
         info["format"] = "tar.gz (archive — needs extraction)"
     else:
         info["format"] = path.suffix[1:] if path.suffix else "unknown"
@@ -166,6 +166,7 @@ def list_available_dumps() -> list[dict]:
     try:
         import urllib.request
         req = urllib.request.Request(_GITHUB_API)
+        req.add_header("User-Agent", "ProtonTune/0.1")
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode())
 
@@ -231,6 +232,7 @@ def download_and_extract(dump_url: str) -> bool:
         with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as tmp:
             tmp_path = tmp.name
             req = urllib.request.Request(dump_url)
+            req.add_header("User-Agent", "ProtonTune/0.1")
             with urllib.request.urlopen(req, timeout=300) as response:
                 while True:
                     chunk = response.read(8192)
@@ -240,7 +242,7 @@ def download_and_extract(dump_url: str) -> bool:
 
         # Extract to data directory
         with tarfile.open(tmp_path, "r:gz") as tar:
-            tar.extractall(path=dest_dir)
+            tar.extractall(path=dest_dir, filter="data")
 
         # Clean up temp file
         os.unlink(tmp_path)
@@ -344,7 +346,7 @@ def _parse_json_report(entry: dict, app_id: str) -> Optional[ProtonDBReport]:
         system_info = entry.get("system_info", "")
 
     # Comments/conclusion (post-2022)
-    comments = entry.get("concludingNotes") or entry.get("concludingNotes") or entry.get("comments", "")
+    comments = entry.get("concludingNotes") or entry.get("concluding_notes") or entry.get("comments", "")
 
     return ProtonDBReport(
         app_id=app_id,

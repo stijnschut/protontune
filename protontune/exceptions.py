@@ -7,6 +7,7 @@ The tool never touches games listed under 'exclude' AppIDs.
 
 from __future__ import annotations
 
+import copy
 import os
 from pathlib import Path
 from typing import Optional
@@ -25,18 +26,18 @@ def load_exceptions() -> dict:
     """Load the per-game exceptions file, returning a default dict if absent."""
     path = get_exceptions_path()
     if not path.exists():
-        return dict(_DEFAULT_EXCEPTIONS)
+        return copy.deepcopy(_DEFAULT_EXCEPTIONS)
 
     import yaml
     try:
         with path.open("r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
-            # Ensure all keys exist
+            # Ensure all keys exist, using deep copies to avoid mutable sharing
             for key in _DEFAULT_EXCEPTIONS:
-                data.setdefault(key, _DEFAULT_EXCEPTIONS[key])
+                data.setdefault(key, copy.deepcopy(_DEFAULT_EXCEPTIONS[key]))
             return data
     except (yaml.YAMLError, OSError):
-        return dict(_DEFAULT_EXCEPTIONS)
+        return copy.deepcopy(_DEFAULT_EXCEPTIONS)
 
 
 def save_exceptions(data: dict) -> bool:

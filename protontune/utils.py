@@ -39,24 +39,28 @@ def clean_gpu_model(raw: str) -> str:
     return s
 
 
+def _config_dir() -> Path:
+    """Return the base configuration directory."""
+    return Path.home() / ".config" / "steam-proton-optimizer"
+
+
 def get_backup_dir() -> Path:
     """Return the path to the backups directory, creating it if needed."""
-    path = Path.home() / ".config" / "steam-proton-optimizer" / "backups"
+    path = _config_dir() / "backups"
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def get_exceptions_path() -> Path:
     """Return the path to the per-game exceptions file."""
-    return Path.home() / ".config" / "steam-proton-optimizer" / "exceptions.yaml"
+    return _config_dir() / "exceptions.yaml"
 
 
 def get_settings_path() -> Path:
     """Return the path to the settings file."""
-    return Path.home() / ".config" / "steam-proton-optimizer" / "settings.yaml"
+    return _config_dir() / "settings.yaml"
 
 
 def ensure_config_dir() -> None:
     """Create the config directory if it doesn't exist."""
-    path = Path.home() / ".config" / "steam-proton-optimizer"
-    path.mkdir(parents=True, exist_ok=True)
+    _config_dir().mkdir(parents=True, exist_ok=True)

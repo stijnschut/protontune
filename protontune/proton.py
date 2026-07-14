@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from protontune.models import ProtonVersion, STABLE_PROTON_PREFIXES
+from protontune.models import ProtonVersion
 from protontune.steam import find_steam_roots
 
 
