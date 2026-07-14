@@ -95,7 +95,7 @@ This launches the interactive menu:
 2. Select games               ← pick one or more games from the list
 3. View recommendations       ← see proposed Proton version + launch options
 4. Apply optimizations        ← backup is created, changes written
-5. Start Steam and play! 🎮
+5. Start Steam and play!
 ```
 
 ### First-time setup

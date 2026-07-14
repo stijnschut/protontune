@@ -491,7 +491,7 @@ def _apply_optimizations() -> None:
             to_apply.append((
                 game,
                 rec.combined_launch_string,
-                rec.proton_version.name if rec.proton_version else None,
+                rec.proton_version.internal_name if rec.proton_version else None,
                 f"confidence {rec.score_confidence:.0%}",
             ))
 

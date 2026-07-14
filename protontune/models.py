@@ -41,6 +41,7 @@ class ProtonVersion:
     path: str  # Absolute path to the tool directory
     is_custom: bool  # True for GE-Proton etc., False for official Valve builds
     version: Optional[str] = None  # Parsed version string where available
+    internal_name: str = ""  # Steam internal name, e.g. "proton_experimental"
 
     def __str__(self) -> str:
         return self.name

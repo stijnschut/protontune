@@ -40,6 +40,7 @@ def scan_proton_versions() -> list[ProtonVersion]:
                                 path=str(entry),
                                 is_custom=False,
                                 version=_parse_proton_version(name),
+                                internal_name=_to_internal_name(name, is_custom=False),
                             )
                         )
 
@@ -57,12 +58,26 @@ def scan_proton_versions() -> list[ProtonVersion]:
                                 path=str(entry),
                                 is_custom=True,
                                 version=_parse_proton_version(name),
+                                internal_name=_to_internal_name(name, is_custom=True),
                             )
                         )
 
     # Sort: official builds first, then custom, alphabetically within each group
     versions.sort(key=lambda v: (not v.is_custom, v.name.lower()))
     return versions
+
+
+def _to_internal_name(name: str, is_custom: bool) -> str:
+    """Derive the Steam internal name from a Proton build's display name.
+
+    Official builds:  "Proton - Experimental" -> "proton_experimental"
+    Custom builds:    "GE-Proton11-1"        -> "GE-Proton11-1"
+    """
+    if is_custom:
+        # Custom builds use their directory name as-is
+        return name
+    # Official: lowercase, replace " - " and spaces with underscores
+    return name.lower().replace(" - ", "_").replace(" ", "_")
 
 
 def _parse_proton_version(name: str) -> Optional[str]:
