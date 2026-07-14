@@ -17,14 +17,10 @@ from protontune import __app_name__, __version__
 from protontune.config import (
     create_backup,
     get_all_localconfig_paths,
-    get_config_vdf_path,
     get_first_localconfig_vdf,
     list_backups,
-    read_launch_options,
-    read_proton_version,
     restore_backup,
     write_launch_options,
-    write_proton_version,
 )
 from protontune.exceptions import (
     add_exclusion,
@@ -381,7 +377,7 @@ def _view_recommendations() -> None:
                 version_display += " [yellow](fallback)[/]"
             table.add_row("Proton", version_display)
         else:
-            table.add_row("Proton", "[dim]No recommendation[/]")
+            table.add_row("Proton", "[dim]Set manually in Steam[/]")
 
         table.add_row("Launch Options", rec.combined_launch_string or "[dim](none)[/]")
         table.add_row("Confidence", f"{rec.score_confidence:.0%} ({rec.total_reports_scored} reports)")
@@ -410,6 +406,8 @@ def _view_recommendations() -> None:
         f"Low confidence: {low_confidence_count}",
         box=box.ROUNDED,
     ))
+    console.print()
+    _print_info("Proton version is informational — set it manually in Steam \u2192 Properties \u2192 Compatibility.")
 
     _wait_for_enter()
 
@@ -428,10 +426,9 @@ def _apply_optimizations() -> None:
         _wait_for_enter()
         return
 
-    config_vdf = get_config_vdf_path()
     localconfig_path = get_first_localconfig_vdf()
 
-    if not config_vdf or not localconfig_path:
+    if not localconfig_path:
         _print_error("Could not locate Steam configuration files.")
         _wait_for_enter()
         return
@@ -460,7 +457,7 @@ def _apply_optimizations() -> None:
     confidence_threshold = get_setting("confidence_threshold", 0.3)
 
     # Build recommendation list for selected games only
-    to_apply: list[tuple[SteamGame, str, Optional[str], str]] = []
+    to_apply: list[tuple[SteamGame, str, str]] = []
 
     with console.status("[bold green]Generating recommendations..."):
         for game in selected:
@@ -468,13 +465,11 @@ def _apply_optimizations() -> None:
                 continue
 
             forced_opts = get_forced_options(game.app_id)
-            forced_proton = get_forced_proton(game.app_id)
 
-            if forced_opts is not None or forced_proton is not None:
+            if forced_opts is not None:
                 to_apply.append((
                     game,
                     forced_opts if forced_opts else "",
-                    forced_proton,
                     "[yellow]forced (user exception)[/]",
                 ))
                 continue
@@ -490,7 +485,6 @@ def _apply_optimizations() -> None:
             to_apply.append((
                 game,
                 rec.combined_launch_string,
-                rec.proton_version.name if rec.proton_version else None,
                 f"confidence {rec.score_confidence:.0%}",
             ))
 
@@ -503,21 +497,20 @@ def _apply_optimizations() -> None:
     console.clear()
     _print_header("Changes Preview")
     _print_warning(f"Steam must be closed. {len(to_apply)} game(s) will be modified.")
+    _print_info("Proton version is not set automatically. Check recommendations in option 2 and set manually in Steam \u2192 Properties \u2192 Compatibility.")
     console.print()
 
     change_table = Table(box=box.SQUARE)
     change_table.add_column("Game", style="bold")
     change_table.add_column("AppID", style="dim")
     change_table.add_column("Launch Options", style="cyan")
-    change_table.add_column("Proton", style="yellow")
     change_table.add_column("Source")
 
-    for game, opts, proton, reason in to_apply:
+    for game, opts, reason in to_apply:
         change_table.add_row(
             game.name,
             game.app_id,
             opts or "[dim](clear)[/]",
-            proton or "[dim](none)[/]",
             reason,
         )
 
@@ -551,27 +544,20 @@ def _apply_optimizations() -> None:
     applied = 0
     errors = 0
     with console.status("[bold green]Applying optimizations..."):
-        for game, opts, proton_name, _reason in to_apply:
-            ok = True
-
-            if not write_launch_options(game.app_id, opts, localconfig_path):
-                _print_error(f"Failed to write launch options for {game.name} ({game.app_id})")
-                ok = False
-
-            if proton_name and not write_proton_version(game.app_id, proton_name, config_vdf):
-                _print_error(f"Failed to set Proton version for {game.name} ({game.app_id})")
-                ok = False
-
-            if ok:
+        for game, opts, _reason in to_apply:
+            if write_launch_options(game.app_id, opts, localconfig_path):
                 applied += 1
             else:
+                _print_error(f"Failed to write launch options for {game.name} ({game.app_id})")
                 errors += 1
 
     console.print()
-    _print_success(f"Changes applied: {applied} game(s)")
+    _print_success(f"Launch options written: {applied} game(s)")
     if errors:
         _print_warning(f"Errors: {errors}")
-    _print_info("Start Steam for the changes to take effect.")
+    console.print()
+    _print_info("[yellow]Proton version not modified.[/] Set it manually in Steam \u2192 Properties \u2192 Compatibility.")
+    _print_info("Start Steam for the launch options to take effect.")
 
     _wait_for_enter()
 
