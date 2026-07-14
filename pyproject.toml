@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "protontune"
+version = "0.1.0"
+description = "Optimize your Steam games with ProtonDB-powered recommendations"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+keywords = ["steam", "proton", "protondb", "linux-gaming", "gaming"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "rich>=13.0",
+    "vdf>=3.4",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/hsh/Protontune"
+Repository = "https://github.com/hsh/Protontune"
+Documentation = "https://github.com/hsh/Protontune#readme"
+
+[project.scripts]
+protontune = "protontune.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["protontune*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
