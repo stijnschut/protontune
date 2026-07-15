@@ -167,10 +167,25 @@ def score_recommendations(
                 freq[key] = {}
             freq[key][value] = freq[key].get(value, 0) + 1
 
-    if not freq:
-        return None
+    def _make_proton_only_rec() -> Optional[GameRecommendation]:
+        most_reported = _most_reported_proton(reports)
+        proton_version = _recommend_proton(available_proton, most_reported)
+        if not proton_version:
+            return None
+        return GameRecommendation(
+            game=game,
+            proton_version=proton_version,
+            launch_options=[],
+            combined_launch_string=_DEFAULT_TRAILER,
+            total_reports_scored=total,
+            score_confidence=min(1.0, total / 50.0),
+            fallback_version=(
+                most_reported is not None
+                and proton_version.name != most_reported
+            ),
+        )
 
-    # Build scored options
+    # Build scored options from frequency counts
     scored: list[ScoredOption] = []
     for key, values in freq.items():
         for value, count in values.items():
@@ -186,8 +201,8 @@ def score_recommendations(
                     )
                 )
 
-    if not scored:
-        return None
+    if not freq or not scored:
+        return _make_proton_only_rec()
 
     # Sort by frequency descending
     scored.sort(key=lambda o: o.score, reverse=True)
