@@ -356,8 +356,24 @@ def _view_recommendations() -> None:
 
     console.clear()
     _print_header("Recommendations")
-    console.print(f"Hardware: [bold]{_gpu_vendor_display(hardware.gpu_vendor)}[/]"
-                  f"{f' ({hardware.gpu_model})' if hardware.gpu_model else ''}")
+    hardware_str = f"Hardware: [bold]{_gpu_vendor_display(hardware.gpu_vendor)}[/]"
+    if hardware.gpu_model:
+        hardware_str += f" ({hardware.gpu_model})"
+    console.print(hardware_str)
+
+    # System-aware defaults
+    sys_defaults = system_defaults(hardware)
+    sys_preferred_proton = preferred_proton(protons)
+    if sys_defaults or sys_preferred_proton:
+        info = []
+        if sys_defaults:
+            info.append("System defaults: " + ", ".join(
+                f"[green]{k}={v}[/]" for k, v in sys_defaults.items()
+            ))
+        if sys_preferred_proton:
+            info.append(f"Distro-preferred Proton: [cyan]{sys_preferred_proton}[/]")
+        for line in info:
+            console.print(line)
     console.print()
 
     with console.status("[bold green]Generating recommendations..."):
@@ -390,11 +406,24 @@ def _view_recommendations() -> None:
             version_display = rec.proton_version.name
             if rec.fallback_version:
                 version_display += " [yellow](fallback)[/]"
+            if sys_preferred_proton:
+                version_display += f" [cyan]\u2192 {sys_preferred_proton} (distro)[/]"
             table.add_row("Proton", version_display)
         else:
             table.add_row("Proton", "[dim]No recommendation[/]")
 
-        table.add_row("Launch Options", rec.combined_launch_string or "[dim](none)[/]")
+        # Merge system defaults into launch options display
+        launch_display = rec.combined_launch_string
+        if sys_defaults and launch_display != _DEFAULT_TRAILER:
+            sys_prefix = " ".join(f"{k}={v}" for k, v in sys_defaults.items())
+            launch_display = launch_display.replace(
+                _DEFAULT_TRAILER, f"{sys_prefix} {_DEFAULT_TRAILER}"
+            )
+        elif sys_defaults:
+            sys_prefix = " ".join(f"{k}={v}" for k, v in sys_defaults.items())
+            launch_display = f"{sys_prefix} {_DEFAULT_TRAILER}"
+
+        table.add_row("Launch Options", launch_display or "[dim](none)[/]")
         table.add_row("Confidence", f"{rec.score_confidence:.0%} ({rec.total_reports_scored} reports)")
 
         if rec.launch_options:
