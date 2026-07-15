@@ -113,6 +113,28 @@ def get_dump_info() -> Optional[dict]:
     return info
 
 
+def is_dump_stale(days: int = 90) -> bool:
+    """Check whether the local ProtonDB data dump is older than `days`.
+
+    Returns True if the data is missing or older than the threshold.
+    """
+    path = find_dump_file()
+    if not path:
+        return True
+
+    age = datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)
+    return age.days > days
+
+
+def get_dump_age_days() -> Optional[int]:
+    """Return how many days old the ProtonDB dump is, or None if missing."""
+    path = find_dump_file()
+    if not path:
+        return None
+    age = datetime.now() - datetime.fromtimestamp(path.stat().st_mtime)
+    return age.days
+
+
 def load_reports_for_game(app_id: str) -> list[ProtonDBReport]:
     """Load all ProtonDB reports for a specific AppID from the local dump.
 

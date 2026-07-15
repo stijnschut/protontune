@@ -42,7 +42,9 @@ from protontune.proton import scan_proton_versions
 from protontune.protondb import (
     download_and_extract,
     find_dump_file,
+    get_dump_age_days,
     get_dump_info,
+    is_dump_stale,
     list_available_dumps,
     load_reports_for_game,
 )
@@ -323,6 +325,12 @@ def _view_recommendations() -> None:
         _wait_for_enter()
         return
 
+    age = get_dump_age_days()
+    if age and age > 90:
+        months = age // 30
+        _print_warning(f"ProtonDB data is ~{months} month(s) old. Newer data is available — use option 5 to update.")
+        console.print()
+
     with console.status("[bold green]Scanning..."):
         hardware = detect_hardware()
         games = scan_installed_games()
@@ -430,6 +438,12 @@ def _apply_optimizations() -> None:
         _print_error("No ProtonDB data dump found. Use option 5 to refresh data first.")
         _wait_for_enter()
         return
+
+    age = get_dump_age_days()
+    if age and age > 90:
+        months = age // 30
+        _print_warning(f"ProtonDB data is ~{months} month(s) old. Newer data is available — use option 5 to update.")
+        console.print()
 
     config_vdf = get_config_vdf_path()
     localconfig_path = get_first_localconfig_vdf()
