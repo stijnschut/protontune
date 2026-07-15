@@ -102,3 +102,99 @@ def is_steam_running() -> bool:
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
         return False
+
+
+# ─── System-aware defaults ────────────────────────────────────────────────
+
+def detect_distro() -> str:
+    """Detect the Linux distribution name.
+
+    Returns a lowercase identifier like 'cachyos', 'arch', 'fedora'.
+    """
+    os_release = Path("/etc/os-release")
+    if not os_release.exists():
+        return "unknown"
+
+    try:
+        text = os_release.read_text()
+        for line in text.splitlines():
+            if line.startswith("ID="):
+                return line.split("=", 1)[1].strip().strip('"').lower()
+    except OSError:
+        pass
+
+    return "unknown"
+
+
+def detect_hdr_support() -> bool:
+    """Check whether an HDR-capable display is connected.
+
+    Checks:
+    1. /sys/class/drm card capabilities for HDR metadata
+    2. kscreen-doctor --json output for HDR
+    """
+    # Check DRM HDR capabilities
+    drm_dir = Path("/sys/class/drm")
+    if drm_dir.exists():
+        for card in drm_dir.iterdir():
+            if not card.name.startswith("card") or "-" in card.name:
+                continue
+            # Check for HDR output capability
+            for connector in card.iterdir():
+                if connector.name.startswith(card.name + "-") and connector.is_dir():
+                    # Modern kernels expose 'Colorspace' or 'HDR_OUTPUT_METADATA'
+                    edid = connector / "edid"
+                    hdr_meta = connector / "HDR_OUTPUT_METADATA"
+                    if hdr_meta.exists():
+                        return True
+
+    # Fallback: kscreen-doctor (KDE Plasma)
+    kscreen = run_cmd(["kscreen-doctor", "--json"])
+    if kscreen:
+        import json
+        try:
+            data = json.loads(kscreen)
+            for output in data.get("outputs", []):
+                caps = output.get("capabilities", {})
+                if caps.get("hdr") or output.get("hdr"):
+                    return True
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    return False
+
+
+def system_defaults(hardware: HardwareProfile) -> dict[str, str]:
+    """Return system-aware launch option defaults based on detected hardware and distro.
+
+    These are always recommended regardless of community data.
+    """
+    defaults: dict[str, str] = {}
+
+    # HDR
+    if detect_hdr_support():
+        defaults["PROTON_ENABLE_HDR"] = "1"
+        defaults["DXVK_HDR"] = "1"
+
+    return defaults
+
+
+def preferred_proton(available: list) -> Optional[str]:
+    """Return the preferred Proton internal name based on distro/hardware.
+
+    E.g., CachyOS users should prefer proton-cachyos-slr if available.
+    """
+    from protontune.models import ProtonVersion
+
+    distro = detect_distro()
+
+    if distro == "cachyos":
+        # CachyOS has its own optimised Proton build
+        cachyos_proton = next(
+            (p for p in available if "cachyos" in p.internal_name.lower()),
+            None,
+        )
+        if cachyos_proton:
+            return cachyos_proton.internal_name
+
+    return None

@@ -36,7 +36,7 @@ from protontune.exceptions import (
     set_forced_options,
     set_forced_proton,
 )
-from protontune.hardware import detect_hardware, is_steam_running
+from protontune.hardware import detect_hardware, is_steam_running, system_defaults, preferred_proton
 from protontune.models import GPUVendor, SteamGame
 from protontune.proton import scan_proton_versions
 from protontune.protondb import (
@@ -48,7 +48,7 @@ from protontune.protondb import (
     list_available_dumps,
     load_reports_for_game,
 )
-from protontune.scoring import score_recommendations
+from protontune.scoring import _DEFAULT_TRAILER, score_recommendations
 from protontune.settings import get_setting, load_settings, save_settings, update_setting
 from protontune.steam import scan_installed_games
 from protontune.utils import ensure_config_dir
@@ -477,6 +477,10 @@ def _apply_optimizations() -> None:
 
     to_apply: list[tuple[SteamGame, str, Optional[str], str]] = []
 
+    # System-aware defaults calculated once
+    sys_defaults = system_defaults(hardware)
+    sys_preferred_proton = preferred_proton(protons)
+
     with console.status("[bold green]Generating recommendations..."):
         for game in selected:
             if is_excluded(game.app_id):
@@ -502,10 +506,29 @@ def _apply_optimizations() -> None:
             if not rec or rec.score_confidence < confidence_threshold:
                 continue
 
+            # Merge system-aware defaults into community recommendations
+            launch_opts = rec.combined_launch_string
+            if sys_defaults:
+                # Inject system defaults before %command%
+                sys_prefix = " ".join(f"{k}={v}" for k, v in sys_defaults.items())
+                if launch_opts == _DEFAULT_TRAILER:
+                    launch_opts = f"{sys_prefix} {_DEFAULT_TRAILER}"
+                else:
+                    # Insert before gamemoderun %command%
+                    launch_opts = launch_opts.replace(
+                        _DEFAULT_TRAILER,
+                        f"{sys_prefix} {_DEFAULT_TRAILER}"
+                    )
+
+            # Use distro-preferred Proton if available
+            proton_name = rec.proton_version.internal_name if rec.proton_version else None
+            if sys_preferred_proton:
+                proton_name = sys_preferred_proton
+
             to_apply.append((
                 game,
-                rec.combined_launch_string,
-                rec.proton_version.internal_name if rec.proton_version else None,
+                launch_opts,
+                proton_name,
                 f"confidence {rec.score_confidence:.0%}",
             ))
 
